@@ -4,10 +4,11 @@ plugins {
         kotlin("jvm")
         id("org.jetbrains.compose")
         id("org.jetbrains.kotlin.plugin.compose")
+        id("com.github.johnrengelman.shadow") version "8.1.1"
 }
 
 group = "cc.lolmerkat"
-version = "1.0-SNAPSHOT"
+version = "1.0.0"
 
 repositories {
         mavenCentral()
@@ -31,6 +32,21 @@ compose.desktop {
                         targetFormats(TargetFormat.Dmg, TargetFormat.Msi, TargetFormat.Deb)
                         packageName = "GithubActions"
                         packageVersion = "1.0.0"
+                }
+        }
+}
+
+tasks {
+        shadowJar {
+                archiveBaseName = "github-actions"
+                archiveVersion = version.toString()
+                archiveClassifier = null
+
+                manifest {
+                        attributes(
+                                "Manifest-Version" to "1.0",
+                                "Main-Class" to "MainKt"
+                        )
                 }
         }
 }
