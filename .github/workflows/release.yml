@@ -16,7 +16,7 @@ jobs:
       - name: Check if version changed
         id: check_version
         run: |
-          git diff HEAD^ HEAD build.gradle.kts | grep "version ="
+          git diff HEAD~1 HEAD build.gradle.kts | grep "version ="
           if [ $? -eq 0 ]; then
             echo "Version changed"
             echo "version_changed=true" >> $GITHUB_OUTPUT
@@ -37,7 +37,7 @@ jobs:
       - name: Set up JDK
         uses: actions/setup-java@v3
         with:
-          java-version: '11'  # or your preferred Java version
+          java-version: '17'  # or your preferred Java version
           distribution: 'adopt'
 
       - name: Build with Gradle
