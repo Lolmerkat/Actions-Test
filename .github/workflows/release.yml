@@ -1,0 +1,65 @@
+name: Release
+
+on:
+  push:
+    branches:
+      - main  # or your default branch
+
+jobs:
+  check_version:
+    runs-on: ubuntu-latest
+    outputs:
+      version_changed: ${{ steps.check_version.outputs.version_changed }}
+      new_version: ${{ steps.check_version.outputs.new_version }}
+    steps:
+      - uses: actions/checkout@v3
+      - name: Check if version changed
+        id: check_version
+        run: |
+          git diff HEAD^ HEAD build.gradle.kts | grep "version ="
+          if [ $? -eq 0 ]; then
+            echo "Version changed"
+            echo "version_changed=true" >> $GITHUB_OUTPUT
+            NEW_VERSION=$(grep "version =" build.gradle.kts | awk -F'"' '{print $2}')
+            echo "new_version=$NEW_VERSION" >> $GITHUB_OUTPUT
+          else
+            echo "Version not changed"
+            echo "version_changed=false" >> $GITHUB_OUTPUT
+          fi
+
+  build_and_release:
+    needs: check_version
+    if: needs.check_version.outputs.version_changed == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Set up JDK
+        uses: actions/setup-java@v3
+        with:
+          java-version: '11'  # or your preferred Java version
+          distribution: 'adopt'
+
+      - name: Build with Gradle
+        run: ./gradlew shadowJar
+
+      - name: Create Release
+        id: create_release
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: v${{ needs.check_version.outputs.new_version }}
+          release_name: Release ${{ needs.check_version.outputs.new_version }}
+          draft: false
+          prerelease: false
+
+      - name: Upload Release Asset
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: ./build/libs/your-project-${{ needs.check_version.outputs.new_version }}-all.jar
+          asset_name: your-project-${{ needs.check_version.outputs.new_version }}-all.jar
+          asset_content_type: application/java-archive
